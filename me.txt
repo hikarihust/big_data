@@ -744,3 +744,42 @@ df.show()
 	|         37|       1|     3|    Mamee, Mr. Hanna|    male|    null|
 	+-----------+--------+------+--------------------+--------+--------+
 	only showing top 20 rows
+
+	===============================================================	
+
+					正規表現マッチング処理
+
+df=spark.read.csv('spark-study/reg_substring.csv', header=True, sep='\t', inferSchema=True)
+df.show()
+	+-----------+--------+------+-----+--------------------+--------------------+
+	|PassengerId|Survived|Pclass| Name|                pass|                post|
+	+-----------+--------+------+-----+--------------------+--------------------+
+	|          1|       0|     3|quang|20191230120000_ml...|From=abc_To=def_R...|
+	|          2|       1|     1| thai|20181220150101_ml...|From=abd_To=deg_R...|
+	+-----------+--------+------+-----+--------------------+--------------------+
+df = df.withColumn("passbook", substring(col("pass"), 1, 14))
+df = df.withColumn("from", substring(col("pass"), 16, 3))
+df = df.withColumn("to", substring(col("pass"), 20, 3))
+df.show()
+	+-----------+--------+------+-----+--------------------+--------------------+--------------+----+---+
+	|PassengerId|Survived|Pclass| Name|                pass|                post|      passbook|from| to|
+	+-----------+--------+------+-----+--------------------+--------------------+--------------+----+---+
+	|          1|       0|     3|quang|20191230120000_ml...|From=abc_To=def_R...|20191230120000| mlo|tsd|
+	|          2|       1|     1| thai|20181220150101_ml...|From=abd_To=deg_R...|20181220150101| mlq|tsf|
+	+-----------+--------+------+-----+--------------------+--------------------+--------------+----+---+
+df = df.withColumn("post_from",  regexp_extract(col('post'), 'From=([^/w]{3})_To=', 1)
+                  ).withColumn("post_to",  regexp_extract(col('post'), 'To=([^/w]{3})_Region=', 1)
+                  ).withColumn("post_region"
+                    ,  regexp_extract(col('post'), 'Region=([^/d]{3})_Area=', 1)
+                  ).withColumn("post_area"
+                    ,  regexp_extract(col('post'), 'Area=([^/d]{3})_Date=', 1)
+                  ).withColumn("post_date"
+                    ,  regexp_extract(col('post'), 'Date=([0-9]{8})', 1)
+                  )
+df.select('post_from', 'post_to', 'post_region', 'post_area', 'post_date').show()
+	+---------+-------+-----------+---------+---------+
+	|post_from|post_to|post_region|post_area|post_date|
+	+---------+-------+-----------+---------+---------+
+	|      abc|    def|        123|      456| 20191130|
+	|      abd|    deg|        125|      458| 20191221|
+	+---------+-------+-----------+---------+---------+

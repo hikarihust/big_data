@@ -1,0 +1,3 @@
+PassengerId	Survived	Pclass	Name	pass	post
+1	0	3	quang	20191230120000_mlo_tsd	From=abc_To=def_Region=123_Area=456_Date=20191130
+2	1	1	thai	20181220150101_mlq_tsf	From=abd_To=deg_Region=125_Area=458_Date=20191221
