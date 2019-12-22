@@ -1,0 +1,560 @@
+					Installation Instruction Windows
+Installation Part - 1  Jupyter notebook + Python3 Check Python2 and Python3  installed.
+	Install  python 3 
+	Either : anaconda or standalone python installer.
+		anaconda download
+		https://www.anaconda.com/distribution/
+	Start notebook : 
+		jupyter notebook
+		
+Installation Part - 2  Install  Java, Py4j, Spark 
+	Why Java :  Spark Compiler Converts Scala code to JVM ByteCode 
+	java 8
+	Download  : http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+	Why Py4j:
+		Py4j - Python to JAVA
+	pip install py4j
+	Spark : 
+		https://spark.apache.org/downloads.html
+		Extract it to  C:\spark
+Installation Part - 3  Set Winutils
+	https://raw.githubusercontent.com/steveloughran/winutils/master/hadoop-2.6.0/bin/winutils.exe
+	And put it in  C:\winutils\bin  (Create  folder if not exist)
+Installation Part - 4  Set Path and start Jupyter notebook
+	Set below path in USER variable for PC :
+		SPARK_HOME C:\spark
+		PYSPARK_DRIVER_PYTHON_OPTS  notebook
+		PYSPARK_DRIVER_PYTHON ipython
+		PATH %SPARK_HOME%
+		JAVA_HOME C:\Program Files\Java\jdk1.8.0_161
+		HADOOP_HOME  C:\winutils
+
+Open Anaconda
+On command line:
+	(base) C:\Users\vudinhquang>jupyter notebook
+	
+	======================================================================
+
+				Import JSON data into Dataframe
+				
+				
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName("Spark").getOrCreate()
+type(spark)
+	pyspark.sql.session.SparkSession
+df = spark.read.json("spark-study/student.json")
+df.show()
+	+-----+-----+
+	|grade| name|
+	+-----+-----+
+	|    4| John|
+	|    9|Marry|
+	|    7|Peter|
+	+-----+-----+
+df.printSchema()
+	root
+	 |-- grade: long (nullable = true)
+	 |-- name: string (nullable = true)
+df.columns
+	['grade', 'name']
+df.count()
+	3
+df.describe()
+	DataFrame[summary: string, grade: string, name: string]
+df.describe().show()
+	+-------+-----------------+-----+
+	|summary|            grade| name|
+	+-------+-----------------+-----+
+	|  count|                3|    3|
+	|   mean|6.666666666666667| null|
+	| stddev|2.516611478423583| null|
+	|    min|                4| John|
+	|    max|                9|Peter|
+	+-------+-----------------+-----+
+df.head(1)
+	[Row(grade=4, name='John')]
+df.head(2)
+	[Row(grade=4, name='John'), Row(grade=9, name='Marry')]
+	
+	
+	===============================================================
+					Define Custom schemaType
+	
+from pyspark.sql.types import StructField, StructType, StringType, IntegerType
+schema = StructType([StructField("name", StructType(), True), StructField("grade", IntegerType(), True)])
+schema = StructType([StructField("name", StructType(), True), StructField("grade", IntegerType(), True)])
+df = spark.read.json("spark-study/student.json", schema=schema)
+df.printSchema()
+	root
+	 |-- name: struct (nullable = true)
+	 |-- grade: integer (nullable = true)
+	 
+	===============================================================	 
+	 
+					Data frame as SQL Table
+	
+df.createOrReplaceTempView("student")
+spark.sql("select * from student where grade=9").show()	
+	+-----+-----+
+	| name|grade|
+	+-----+-----+
+	|Marry|    9|
+	+-----+-----+		
+	
+df.select("name").show()
+	+-----+
+	| name|
+	+-----+
+	| John|
+	|Marry|
+	|Peter|
+	+-----+
+df.select("*").where("grade=9").show()
+	+-----+-----+
+	| name|grade|
+	+-----+-----+
+	|Marry|    9|
+	+-----+-----+
+	
+	===============================================================	 
+	
+					Data frame Operation
+					
+df.select(["name", "grade"]).show()
+	+-----+-----+
+	| name|grade|
+	+-----+-----+
+	| John|    4|
+	|Marry|    9|
+	|Peter|    7|
+	+-----+-----+
+	
+df.withColumn("newgrade", df.grade + 5).show()
+	+-----+-----+--------+
+	| name|grade|newgrade|
+	+-----+-----+--------+
+	| John|    4|       9|
+	|Marry|    9|      14|
+	|Peter|    7|      12|
+	+-----+-----+--------+
+df.withColumnRenamed("name", "newname").show()
+	+-------+-----+
+	|newname|grade|
+	+-------+-----+
+	|   John|    4|
+	|  Marry|    9|
+	|  Peter|    7|
+	+-------+-----+
+
+df=spark.read.csv('spark-study/titanic.csv', header=True, sep='\t', inferSchema=True)
+df.show()
+	+-----------+--------+------+--------------------+------+----+-----+-----+----------------+-------+-----+--------+
+	|PassengerId|Survived|Pclass|                Name|   Sex| Age|SibSp|Parch|          Ticket|   Fare|Cabin|Embarked|
+	+-----------+--------+------+--------------------+------+----+-----+-----+----------------+-------+-----+--------+
+	|          1|       0|     3|Braund, Mr. Owen ...|  male|22.0|    1|    0|       A/5 21171|   7.25| null|       S|
+	|          2|       1|     1|Cumings, Mrs. Joh...|female|38.0|    1|    0|        PC 17599|71.2833|  C85|       C|
+	|          3|       1|     3|Heikkinen, Miss. ...|female|26.0|    0|    0|STON/O2. 3101282|  7.925| null|       S|
+	|          4|       1|     1|Futrelle, Mrs. Ja...|female|35.0|    1|    0|          113803|   53.1| C123|       S|
+	|          5|       0|     3|Allen, Mr. Willia...|  male|35.0|    0|    0|          373450|   8.05| null|       S|
+	|          6|       0|     3|    Moran, Mr. James|  male|null|    0|    0|          330877| 8.4583| null|       Q|
+	|          7|       0|     1|McCarthy, Mr. Tim...|  male|54.0|    0|    0|           17463|51.8625|  E46|       S|
+	|          8|       0|     3|Palsson, Master. ...|  male| 2.0|    3|    1|          349909| 21.075| null|       S|
+	|          9|       1|     3|Johnson, Mrs. Osc...|female|27.0|    0|    2|          347742|11.1333| null|       S|
+	|         10|       1|     2|Nasser, Mrs. Nich...|female|14.0|    1|    0|          237736|30.0708| null|       C|
+	|         11|       1|     3|Sandstrom, Miss. ...|female| 4.0|    1|    1|         PP 9549|   16.7|   G6|       S|
+	|         12|       1|     1|Bonnell, Miss. El...|female|58.0|    0|    0|          113783|  26.55| C103|       S|
+	|         13|       0|     3|Saundercock, Mr. ...|  male|20.0|    0|    0|       A/5. 2151|   8.05| null|       S|
+	|         14|       0|     3|Andersson, Mr. An...|  male|39.0|    1|    5|          347082| 31.275| null|       S|
+	|         15|       0|     3|Vestrom, Miss. Hu...|female|14.0|    0|    0|          350406| 7.8542| null|       S|
+	|         16|       1|     2|Hewlett, Mrs. (Ma...|female|55.0|    0|    0|          248706|   16.0| null|       S|
+	|         17|       0|     3|Rice, Master. Eugene|  male| 2.0|    4|    1|          382652| 29.125| null|       Q|
+	|         18|       1|     2|Williams, Mr. Cha...|  male|null|    0|    0|          244373|   13.0| null|       S|
+	|         19|       0|     3|Vander Planke, Mr...|female|31.0|    1|    0|          345763|   18.0| null|       S|
+	|         20|       1|     3|Masselmani, Mrs. ...|female|null|    0|    0|            2649|  7.225| null|       C|
+	+-----------+--------+------+--------------------+------+----+-----+-----+----------------+-------+-----+--------+
+	only showing top 20 rows
+df.printSchema()
+	root
+	 |-- PassengerId: integer (nullable = true)
+	 |-- Survived: integer (nullable = true)
+	 |-- Pclass: integer (nullable = true)
+	 |-- Name: string (nullable = true)
+	 |-- Sex: string (nullable = true)
+	 |-- Age: double (nullable = true)
+	 |-- SibSp: integer (nullable = true)
+	 |-- Parch: integer (nullable = true)
+	 |-- Ticket: string (nullable = true)
+	 |-- Fare: double (nullable = true)
+	 |-- Cabin: string (nullable = true)
+	 |-- Embarked: string (nullable = true)
+df.groupBy('Sex').count().show()
+	+------+-----+
+	|   Sex|count|
+	+------+-----+
+	|female|   56|
+	|  male|  100|
+	+------+-----+
+df.groupBy('Sex').mean().show()
+	+------+----------------+------------------+------------------+------------------+----------+------------------+------------------+
+	|   Sex|avg(PassengerId)|     avg(Survived)|       avg(Pclass)|          avg(Age)|avg(SibSp)|        avg(Parch)|         avg(Fare)|
+	+------+----------------+------------------+------------------+------------------+----------+------------------+------------------+
+	|female|          68.125|0.7142857142857143|2.4642857142857144| 24.46808510638298|     0.875|0.5178571428571429|28.460639285714286|
+	|  male|           84.31|              0.14|               2.4|30.326962025316455|      0.47|              0.33|27.912997999999988|
+	+------+----------------+------------------+------------------+------------------+----------+------------------+------------------+
+df.groupBy('Sex').mean().select(['Sex', 'avg(Age)']).show()
+	+------+------------------+
+	|   Sex|          avg(Age)|
+	+------+------------------+
+	|female| 24.46808510638298|
+	|  male|30.326962025316455|
+	+------+------------------+
+df.orderBy('Fare').show()
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------------+------+-----+--------+
+	|PassengerId|Survived|Pclass|                Name|   Sex| Age|SibSp|Parch|            Ticket|  Fare|Cabin|Embarked|
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------------+------+-----+--------+
+	|        144|       0|     3| Burke, Mr. Jeremiah|  male|19.0|    0|    0|            365222|  6.75| null|       Q|
+	|        130|       0|     3|  Ekstrom, Mr. Johan|  male|45.0|    0|    0|            347061| 6.975| null|       S|
+	|        132|       0|     3|Coelho, Mr. Domin...|  male|20.0|    0|    0|SOTON/O.Q. 3101307|  7.05| null|       S|
+	|        128|       1|     3|Madsen, Mr. Fridt...|  male|24.0|    0|    0|           C 17369|7.1417| null|       S|
+	|         20|       1|     3|Masselmani, Mrs. ...|female|null|    0|    0|              2649| 7.225| null|       C|
+	|         27|       0|     3|Emir, Mr. Farred ...|  male|null|    0|    0|              2631| 7.225| null|       C|
+	|         58|       0|     3| Novel, Mr. Mansouer|  male|28.5|    0|    0|              2697|7.2292| null|       C|
+	|         61|       0|     3|Sirayanian, Mr. O...|  male|22.0|    0|    0|              2669|7.2292| null|       C|
+	|         37|       1|     3|    Mamee, Mr. Hanna|  male|null|    0|    0|              2677|7.2292| null|       C|
+	|          1|       0|     3|Braund, Mr. Owen ...|  male|22.0|    1|    0|         A/5 21171|  7.25| null|       S|
+	|         95|       0|     3|   Coxon, Mr. Daniel|  male|59.0|    0|    0|            364500|  7.25| null|       S|
+	|        155|       0|     3|Olsen, Mr. Ole Ma...|  male|null|    0|    0|         Fa 265302|7.3125| null|       S|
+	|         76|       0|     3|Moen, Mr. Sigurd ...|  male|25.0|    0|    0|            348123|  7.65|F G73|       S|
+	|        107|       1|     3|Salkjelsvik, Miss...|female|21.0|    0|    0|            343120|  7.65| null|       S|
+	|        117|       0|     3|Connors, Mr. Patrick|  male|70.5|    0|    0|            370369|  7.75| null|       Q|
+	|         33|       1|     3|Glynn, Miss. Mary...|female|null|    0|    0|            335677|  7.75| null|       Q|
+	|        127|       0|     3| McMahon, Mr. Martin|  male|null|    0|    0|            370372|  7.75| null|       Q|
+	|         48|       1|     3|O'Driscoll, Miss....|female|null|    0|    0|             14311|  7.75| null|       Q|
+	|        142|       1|     3|Nysten, Miss. Ann...|female|22.0|    0|    0|            347081|  7.75| null|       S|
+	|        108|       1|     3|Moss, Mr. Albert ...|  male|null|    0|    0|            312991| 7.775| null|       S|
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------------+------+-----+--------+
+df.orderBy(df['Fare'].desc()).show()
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------+--------+-----------+--------+
+	|PassengerId|Survived|Pclass|                Name|   Sex| Age|SibSp|Parch|      Ticket|    Fare|      Cabin|Embarked|
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------+--------+-----------+--------+
+	|         28|       0|     1|Fortune, Mr. Char...|  male|19.0|    3|    2|       19950|   263.0|C23 C25 C27|       S|
+	|         89|       1|     1|Fortune, Miss. Ma...|female|23.0|    3|    2|       19950|   263.0|C23 C25 C27|       S|
+	|        119|       0|     1|Baxter, Mr. Quigg...|  male|24.0|    0|    1|    PC 17558|247.5208|    B58 B60|       C|
+	|         32|       1|     1|Spencer, Mrs. Wil...|female|null|    1|    0|    PC 17569|146.5208|        B78|       C|
+	|         63|       0|     1|Harris, Mr. Henry...|  male|45.0|    1|    0|       36973|  83.475|        C83|       S|
+	|         35|       0|     1|Meyer, Mr. Edgar ...|  male|28.0|    1|    0|    PC 17604| 82.1708|       null|       C|
+	|         62|       1|     1| Icard, Miss. Amelie|female|38.0|    0|    0|      113572|    80.0|        B28|    null|
+	|        140|       0|     1|  Giglio, Mr. Victor|  male|24.0|    0|    0|    PC 17593|    79.2|        B86|       C|
+	|        103|       0|     1|White, Mr. Richar...|  male|21.0|    0|    1|       35281| 77.2875|        D26|       S|
+	|        125|       0|     1|White, Mr. Perciv...|  male|54.0|    0|    1|       35281| 77.2875|        D26|       S|
+	|         53|       1|     1|Harper, Mrs. Henr...|female|49.0|    1|    0|    PC 17572| 76.7292|        D33|       C|
+	|         73|       0|     2|Hood, Mr. Ambrose Jr|  male|21.0|    0|    0|S.O.C. 14879|    73.5|       null|       S|
+	|        121|       0|     2|Hickman, Mr. Stan...|  male|21.0|    2|    0|S.O.C. 14879|    73.5|       null|       S|
+	|          2|       1|     1|Cumings, Mrs. Joh...|female|38.0|    1|    0|    PC 17599| 71.2833|        C85|       C|
+	|        152|       1|     1|Pears, Mrs. Thoma...|female|22.0|    1|    0|      113776|    66.6|         C2|       S|
+	|         98|       1|     1|Greenfield, Mr. W...|  male|23.0|    0|    1|    PC 17759| 63.3583|    D10 D12|       C|
+	|         55|       0|     1|Ostby, Mr. Engelh...|  male|65.0|    0|    1|      113509| 61.9792|        B30|       C|
+	|        156|       0|     1|Williams, Mr. Cha...|  male|51.0|    0|    1|    PC 17597| 61.3792|       null|       C|
+	|         93|       0|     1|Chaffee, Mr. Herb...|  male|46.0|    1|    0| W.E.P. 5734|  61.175|        E31|       S|
+	|         75|       1|     3|       Bing, Mr. Lee|  male|32.0|    0|    0|        1601| 56.4958|       null|       S|
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------+--------+-----------+--------+
+	only showing top 20 rows
+df.orderBy(df['Fare'].asc()).show()
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------------+------+-----+--------+
+	|PassengerId|Survived|Pclass|                Name|   Sex| Age|SibSp|Parch|            Ticket|  Fare|Cabin|Embarked|
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------------+------+-----+--------+
+	|        144|       0|     3| Burke, Mr. Jeremiah|  male|19.0|    0|    0|            365222|  6.75| null|       Q|
+	|        130|       0|     3|  Ekstrom, Mr. Johan|  male|45.0|    0|    0|            347061| 6.975| null|       S|
+	|        132|       0|     3|Coelho, Mr. Domin...|  male|20.0|    0|    0|SOTON/O.Q. 3101307|  7.05| null|       S|
+	|        128|       1|     3|Madsen, Mr. Fridt...|  male|24.0|    0|    0|           C 17369|7.1417| null|       S|
+	|         20|       1|     3|Masselmani, Mrs. ...|female|null|    0|    0|              2649| 7.225| null|       C|
+	|         27|       0|     3|Emir, Mr. Farred ...|  male|null|    0|    0|              2631| 7.225| null|       C|
+	|         58|       0|     3| Novel, Mr. Mansouer|  male|28.5|    0|    0|              2697|7.2292| null|       C|
+	|         61|       0|     3|Sirayanian, Mr. O...|  male|22.0|    0|    0|              2669|7.2292| null|       C|
+	|         37|       1|     3|    Mamee, Mr. Hanna|  male|null|    0|    0|              2677|7.2292| null|       C|
+	|          1|       0|     3|Braund, Mr. Owen ...|  male|22.0|    1|    0|         A/5 21171|  7.25| null|       S|
+	|         95|       0|     3|   Coxon, Mr. Daniel|  male|59.0|    0|    0|            364500|  7.25| null|       S|
+	|        155|       0|     3|Olsen, Mr. Ole Ma...|  male|null|    0|    0|         Fa 265302|7.3125| null|       S|
+	|         76|       0|     3|Moen, Mr. Sigurd ...|  male|25.0|    0|    0|            348123|  7.65|F G73|       S|
+	|        107|       1|     3|Salkjelsvik, Miss...|female|21.0|    0|    0|            343120|  7.65| null|       S|
+	|        117|       0|     3|Connors, Mr. Patrick|  male|70.5|    0|    0|            370369|  7.75| null|       Q|
+	|         33|       1|     3|Glynn, Miss. Mary...|female|null|    0|    0|            335677|  7.75| null|       Q|
+	|        127|       0|     3| McMahon, Mr. Martin|  male|null|    0|    0|            370372|  7.75| null|       Q|
+	|         48|       1|     3|O'Driscoll, Miss....|female|null|    0|    0|             14311|  7.75| null|       Q|
+	|        142|       1|     3|Nysten, Miss. Ann...|female|22.0|    0|    0|            347081|  7.75| null|       S|
+	|        108|       1|     3|Moss, Mr. Albert ...|  male|null|    0|    0|            312991| 7.775| null|       S|
+	+-----------+--------+------+--------------------+------+----+-----+-----+------------------+------+-----+--------+
+	only showing top 20 rows
+from pyspark.sql.functions import mean
+df.select(mean('age').alias("Average Age")).show()
+	+------------------+
+	|       Average Age|
+	+------------------+
+	|28.141507936507935|
+	+------------------+
+
+from pyspark.sql.functions import countDistinct
+df.select(countDistinct('Sex')).show()
+	+-------------------+
+	|count(DISTINCT Sex)|
+	+-------------------+
+	|                  2|
+	+-------------------+
+	
+	===============================================================		
+			
+								Filter data
+								
+df.filter(df.Sex == 'male').show()
+	+-----------+--------+------+--------------------+----+----+-----+-----+----------+-------+-----------+--------+
+	|PassengerId|Survived|Pclass|                Name| Sex| Age|SibSp|Parch|    Ticket|   Fare|      Cabin|Embarked|
+	+-----------+--------+------+--------------------+----+----+-----+-----+----------+-------+-----------+--------+
+	|          1|       0|     3|Braund, Mr. Owen ...|male|22.0|    1|    0| A/5 21171|   7.25|       null|       S|
+	|          5|       0|     3|Allen, Mr. Willia...|male|35.0|    0|    0|    373450|   8.05|       null|       S|
+	|          6|       0|     3|    Moran, Mr. James|male|null|    0|    0|    330877| 8.4583|       null|       Q|
+	|          7|       0|     1|McCarthy, Mr. Tim...|male|54.0|    0|    0|     17463|51.8625|        E46|       S|
+	|          8|       0|     3|Palsson, Master. ...|male| 2.0|    3|    1|    349909| 21.075|       null|       S|
+	|         13|       0|     3|Saundercock, Mr. ...|male|20.0|    0|    0| A/5. 2151|   8.05|       null|       S|
+	|         14|       0|     3|Andersson, Mr. An...|male|39.0|    1|    5|    347082| 31.275|       null|       S|
+	|         17|       0|     3|Rice, Master. Eugene|male| 2.0|    4|    1|    382652| 29.125|       null|       Q|
+	|         18|       1|     2|Williams, Mr. Cha...|male|null|    0|    0|    244373|   13.0|       null|       S|
+	|         21|       0|     2|Fynney, Mr. Joseph J|male|35.0|    0|    0|    239865|   26.0|       null|       S|
+	|         22|       1|     2|Beesley, Mr. Lawr...|male|34.0|    0|    0|    248698|   13.0|        D56|       S|
+	|         24|       1|     1|Sloper, Mr. Willi...|male|28.0|    0|    0|    113788|   35.5|         A6|       S|
+	|         27|       0|     3|Emir, Mr. Farred ...|male|null|    0|    0|      2631|  7.225|       null|       C|
+	|         28|       0|     1|Fortune, Mr. Char...|male|19.0|    3|    2|     19950|  263.0|C23 C25 C27|       S|
+	|         30|       0|     3| Todoroff, Mr. Lalio|male|null|    0|    0|    349216| 7.8958|       null|       S|
+	|         31|       0|     1|Uruchurtu, Don. M...|male|40.0|    0|    0|  PC 17601|27.7208|       null|       C|
+	|         34|       0|     2|Wheadon, Mr. Edwa...|male|66.0|    0|    0|C.A. 24579|   10.5|       null|       S|
+	|         35|       0|     1|Meyer, Mr. Edgar ...|male|28.0|    1|    0|  PC 17604|82.1708|       null|       C|
+	|         36|       0|     1|Holverson, Mr. Al...|male|42.0|    1|    0|    113789|   52.0|       null|       S|
+	|         37|       1|     3|    Mamee, Mr. Hanna|male|null|    0|    0|      2677| 7.2292|       null|       C|
+	+-----------+--------+------+--------------------+----+----+-----+-----+----------+-------+-----------+--------+
+	only showing top 20 rows
+df.filter(df.Age == 40).show()
+	+-----------+--------+------+--------------------+------+----+-----+-----+--------+-------+-----+--------+
+	|PassengerId|Survived|Pclass|                Name|   Sex| Age|SibSp|Parch|  Ticket|   Fare|Cabin|Embarked|
+	+-----------+--------+------+--------------------+------+----+-----+-----+--------+-------+-----+--------+
+	|         31|       0|     1|Uruchurtu, Don. M...|  male|40.0|    0|    0|PC 17601|27.7208| null|       C|
+	|         41|       0|     3|Ahlin, Mrs. Johan...|female|40.0|    1|    0|    7546|  9.475| null|       S|
+	+-----------+--------+------+--------------------+------+----+-----+-----+--------+-------+-----+--------+
+df.filter((df.Sex == 'male') & (df.Age > 40)).show()
+	+-----------+--------+------+--------------------+----+----+-----+-----+-----------+-------+-----+--------+
+	|PassengerId|Survived|Pclass|                Name| Sex| Age|SibSp|Parch|     Ticket|   Fare|Cabin|Embarked|
+	+-----------+--------+------+--------------------+----+----+-----+-----+-----------+-------+-----+--------+
+	|          7|       0|     1|McCarthy, Mr. Tim...|male|54.0|    0|    0|      17463|51.8625|  E46|       S|
+	|         34|       0|     2|Wheadon, Mr. Edwa...|male|66.0|    0|    0| C.A. 24579|   10.5| null|       S|
+	|         36|       0|     1|Holverson, Mr. Al...|male|42.0|    1|    0|     113789|   52.0| null|       S|
+	|         55|       0|     1|Ostby, Mr. Engelh...|male|65.0|    0|    1|     113509|61.9792|  B30|       C|
+	|         63|       0|     1|Harris, Mr. Henry...|male|45.0|    1|    0|      36973| 83.475|  C83|       S|
+	|         93|       0|     1|Chaffee, Mr. Herb...|male|46.0|    1|    0|W.E.P. 5734| 61.175|  E31|       S|
+	|         95|       0|     3|   Coxon, Mr. Daniel|male|59.0|    0|    0|     364500|   7.25| null|       S|
+	|         97|       0|     1|Goldschmidt, Mr. ...|male|71.0|    0|    0|   PC 17754|34.6542|   A5|       C|
+	|        111|       0|     1|Porter, Mr. Walte...|male|47.0|    0|    0|     110465|   52.0| C110|       S|
+	|        117|       0|     3|Connors, Mr. Patrick|male|70.5|    0|    0|     370369|   7.75| null|       Q|
+	|        125|       0|     1|White, Mr. Perciv...|male|54.0|    0|    1|      35281|77.2875|  D26|       S|
+	|        130|       0|     3|  Ekstrom, Mr. Johan|male|45.0|    0|    0|     347061|  6.975| null|       S|
+	|        150|       0|     2|Byles, Rev. Thoma...|male|42.0|    0|    0|     244310|   13.0| null|       S|
+	|        151|       0|     2|Bateman, Rev. Rob...|male|51.0|    0|    0|S.O.P. 1166| 12.525| null|       S|
+	|        153|       0|     3|    Meo, Mr. Alfonzo|male|55.5|    0|    0| A.5. 11206|   8.05| null|       S|
+	|        154|       0|     3|van Billiard, Mr....|male|40.5|    0|    2|   A/5. 851|   14.5| null|       S|
+	|        156|       0|     1|Williams, Mr. Cha...|male|51.0|    0|    1|   PC 17597|61.3792| null|       C|
+	+-----------+--------+------+--------------------+----+----+-----+-----+-----------+-------+-----+--------+
+	
+	===============================================================		
+			
+								Handling Missing data
+df = spark.read.csv('spark-study/missing-data.csv', inferSchema=True, header=False)
+df.show()
+	+----+----+----+
+	| _c0| _c1| _c2|
+	+----+----+----+
+	| 5.0|   3| 2.5|
+	| 2.6|null| 4.0|
+	|null|null| 4.3|
+	| 7.0|   3|null|
+	+----+----+----+
+df.dropna().show()
+	+---+---+---+
+	|_c0|_c1|_c2|
+	+---+---+---+
+	|5.0|  3|2.5|
+	+---+---+---+
+df.dropna(thresh=2).show()
+	+---+----+----+
+	|_c0| _c1| _c2|
+	+---+----+----+
+	|5.0|   3| 2.5|
+	|2.6|null| 4.0|
+	|7.0|   3|null|
+	+---+----+----+
+df.dropna(how='any').show()
+	+---+---+---+
+	|_c0|_c1|_c2|
+	+---+---+---+
+	|5.0|  3|2.5|
+	+---+---+---+
+df.dropna(how='all').show()
+	+----+----+----+
+	| _c0| _c1| _c2|
+	+----+----+----+
+	| 5.0|   3| 2.5|
+	| 2.6|null| 4.0|
+	|null|null| 4.3|
+	| 7.0|   3|null|
+	+----+----+----+
+df.fillna(0).show()
+	+---+---+---+
+	|_c0|_c1|_c2|
+	+---+---+---+
+	|5.0|  3|2.5|
+	|2.6|  0|4.0|
+	|0.0|  0|4.3|
+	|7.0|  3|0.0|
+	+---+---+---+
+df.printSchema()
+	root
+	 |-- _c0: double (nullable = true)
+	 |-- _c1: integer (nullable = true)
+	 |-- _c2: double (nullable = true)
+df.fillna(34.5).show()
+	+----+---+----+
+	| _c0|_c1| _c2|
+	+----+---+----+
+	| 5.0|  3| 2.5|
+	| 2.6| 34| 4.0|
+	|34.5| 34| 4.3|
+	| 7.0|  3|34.5|
+	+----+---+----+
+	
+	===============================================================		
+			
+								Dealing with datetime in Dataframe
+df = spark.read.csv('spark-study/stock-data.csv', inferSchema=True, header=True)
+df.show()
+	+-------------------+----------+----------+---------+-----------+
+	|               Date|Open Price|High Price|Low Price|Close Price|
+	+-------------------+----------+----------+---------+-----------+
+	|2018-02-28 00:00:00|     142.0|     151.7|    142.0|     148.55|
+	|2018-02-27 00:00:00|    149.15|     154.0|    149.1|      150.0|
+	|2018-02-26 00:00:00|     151.6|     152.0|    151.2|     151.35|
+	|2018-02-25 00:00:00|     151.3|     154.0|    151.1|      153.2|
+	|2018-02-24 00:00:00|     152.0|     153.6|    152.0|     152.65|
+	|2018-02-23 00:00:00|     154.0|     154.0|    151.3|      153.2|
+	|2018-02-22 00:00:00|     157.2|     157.2|   156.85|     156.95|
+	|2018-02-21 00:00:00|     154.7|     160.0|   152.55|     155.45|
+	|2018-02-20 00:00:00|     161.0|     161.5|    158.0|      160.2|
+	|2018-02-19 00:00:00|     157.5|    164.05|    157.5|      161.5|
+	|2018-02-18 00:00:00|     161.9|    164.95|    160.0|      160.9|
+	|2018-02-17 00:00:00|     161.4|     171.1|    160.9|     163.75|
+	+-------------------+----------+----------+---------+-----------+
+df.printSchema()
+	root
+	 |-- Date: timestamp (nullable = true)
+	 |-- Open Price: double (nullable = true)
+	 |-- High Price: double (nullable = true)
+	 |-- Low Price: double (nullable = true)
+from pyspark.sql.functions import dayofmonth, hour, dayofyear, month, year, weekofyear
+df.select('Date').show()
+	+-------------------+
+	|               Date|
+	+-------------------+
+	|2018-02-28 00:00:00|
+	|2018-02-27 00:00:00|
+	|2018-02-26 00:00:00|
+	|2018-02-25 00:00:00|
+	|2018-02-24 00:00:00|
+	|2018-02-23 00:00:00|
+	|2018-02-22 00:00:00|
+	|2018-02-21 00:00:00|
+	|2018-02-20 00:00:00|
+	|2018-02-19 00:00:00|
+	|2018-02-18 00:00:00|
+	|2018-02-17 00:00:00|
+	+-------------------+
+df.select(year('Date')).show()
+	+----------+
+	|year(Date)|
+	+----------+
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	|      2018|
+	+----------+
+df.select(hour('Date')).show()
+df.select(dayofmonth('Date')).show()
+df.select(dayofyear('Date')).show()
+df.withColumn('day of year', dayofyear('Date')).show()
+	+-------------------+----------+----------+---------+-----------+-----------+
+	|               Date|Open Price|High Price|Low Price|Close Price|day of year|
+	+-------------------+----------+----------+---------+-----------+-----------+
+	|2018-02-28 00:00:00|     142.0|     151.7|    142.0|     148.55|         59|
+	|2018-02-27 00:00:00|    149.15|     154.0|    149.1|      150.0|         58|
+	|2018-02-26 00:00:00|     151.6|     152.0|    151.2|     151.35|         57|
+	|2018-02-25 00:00:00|     151.3|     154.0|    151.1|      153.2|         56|
+	|2018-02-24 00:00:00|     152.0|     153.6|    152.0|     152.65|         55|
+	|2018-02-23 00:00:00|     154.0|     154.0|    151.3|      153.2|         54|
+	|2018-02-22 00:00:00|     157.2|     157.2|   156.85|     156.95|         53|
+	|2018-02-21 00:00:00|     154.7|     160.0|   152.55|     155.45|         52|
+	|2018-02-20 00:00:00|     161.0|     161.5|    158.0|      160.2|         51|
+	|2018-02-19 00:00:00|     157.5|    164.05|    157.5|      161.5|         50|
+	|2018-02-18 00:00:00|     161.9|    164.95|    160.0|      160.9|         49|
+	|2018-02-17 00:00:00|     161.4|     171.1|    160.9|     163.75|         48|
+	+-------------------+----------+----------+---------+-----------+-----------+
+	
+	===============================================================		
+		
+from datetime import datetime
+now = datetime.now()
+df.withColumn('new_Date', lit(now)).show()
+	+-------------------+----------+----------+---------+-----------+--------------------+
+	|               Date|Open Price|High Price|Low Price|Close Price|            new_Date|
+	+-------------------+----------+----------+---------+-----------+--------------------+
+	|2018-02-28 00:00:00|     142.0|     151.7|    142.0|     148.55|2019-12-22 15:36:...|
+	|2018-02-27 00:00:00|    149.15|     154.0|    149.1|      150.0|2019-12-22 15:36:...|
+	|2018-02-26 00:00:00|     151.6|     152.0|    151.2|     151.35|2019-12-22 15:36:...|
+	|2018-02-25 00:00:00|     151.3|     154.0|    151.1|      153.2|2019-12-22 15:36:...|
+	|2018-02-24 00:00:00|     152.0|     153.6|    152.0|     152.65|2019-12-22 15:36:...|
+	|2018-02-23 00:00:00|     154.0|     154.0|    151.3|      153.2|2019-12-22 15:36:...|
+	|2018-02-22 00:00:00|     157.2|     157.2|   156.85|     156.95|2019-12-22 15:36:...|
+	|2018-02-21 00:00:00|     154.7|     160.0|   152.55|     155.45|2019-12-22 15:36:...|
+	|2018-02-20 00:00:00|     161.0|     161.5|    158.0|      160.2|2019-12-22 15:36:...|
+	|2018-02-19 00:00:00|     157.5|    164.05|    157.5|      161.5|2019-12-22 15:36:...|
+	|2018-02-18 00:00:00|     161.9|    164.95|    160.0|      160.9|2019-12-22 15:36:...|
+	|2018-02-17 00:00:00|     161.4|     171.1|    160.9|     163.75|2019-12-22 15:36:...|
+	+-------------------+----------+----------+---------+-----------+--------------------+
+	
+df=spark.read.csv('spark-study/quang.csv', header=True, sep='\t', inferSchema=True)
+df.show()
+	+-----------+--------+------+-----+------+----+-----+-----+----------------+-------+-----+--------+
+	|PassengerId|Survived|Pclass| Name|   Sex| Age|SibSp|Parch|          Ticket|   Fare|Cabin|Embarked|
+	+-----------+--------+------+-----+------+----+-----+-----+----------------+-------+-----+--------+
+	|          1|       0|     3|quang|  male|  22|    1|    0|       A/5 21171|   7.25| null|       S|
+	|          2|       1|     1| thai|female|  38|    1|    0|        PC 17599|71.2833|  C85|       C|
+	|          3|       1|     3|  son|female|  26|    0|    0|STON/O2. 3101282|  7.925| null|       S|
+	|          4|       1|     1| hung|female|  35|    1|    0|          113803|   53.1| C123|       S|
+	|          5|       0|     3| thuy|  male|  35|    0|    0|          373450|   8.05| null|       S|
+	|          6|       0|     3|  nam|  male|null|    0|    0|          330877| 8.4583| null|       Q|
+	|          7|       0|     1|  hao|  male|  54|    0|    0|           17463|51.8625|  E46|       S|
+	+-----------+--------+------+-----+------+----+-----+-----+----------------+-------+-----+--------+
+dff=df.withColumn("new_col", concat(col("Name"), lit("_"), col("Sex")))
+dff.select('new_col').show()
+	+-----------+
+	|    new_col|
+	+-----------+
+	| quang_male|
+	|thai_female|
+	| son_female|
+	|hung_female|
+	|  thuy_male|
+	|   nam_male|
+	|   hao_male|
+	+-----------+
