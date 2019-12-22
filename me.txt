@@ -558,3 +558,69 @@ dff.select('new_col').show()
 	|   nam_male|
 	|   hao_male|
 	+-----------+
+
+	===============================================================	
+
+					window
+
+df=spark.read.csv('spark-study/window.csv', header=True, sep='\t', inferSchema=True)
+df.show()
+	+-----------+--------+------+-----+----------+----------+
+	|PassengerId|Survived|Pclass| Name|  visitors|     post1|
+	+-----------+--------+------+-----+----------+----------+
+	|          1|       0|     3|quang|visitors_1|NON_MEMBER|
+	|          2|       1|     1| thai|visitors_1|    MEMBER|
+	|          3|       1|     3|  son|visitors_2|    MEMBER|
+	|          4|       1|     1| hung|visitors_2|    MEMBER|
+	|          5|       0|     3| thuy|visitors_2|NON_MEMBER|
+	|          6|       0|     3|  nam|visitors_3|    MEMBER|
+	|          7|       0|     1|  hao|visitors_3|NON_MEMBER|
+	+-----------+--------+------+-----+----------+----------+
+#同一visitors内でMEMBERとなっているヒットがあれば、NON_MEMBER ⇒ MEMBERとする。
+mebr_category= (Window
+	.partitionBy('visitors')
+	.orderBy('post1'))
+df = df.withColumn("mebr", first("post1", True).over(mebr_category))       -> Thực hiện over khi giá trị đầu của group khác null
+df.show()
+	+-----------+--------+------+-----+----------+----------+------+
+	|PassengerId|Survived|Pclass| Name|  visitors|     post1|  mebr|
+	+-----------+--------+------+-----+----------+----------+------+
+	|          3|       1|     3|  son|visitors_2|    MEMBER|MEMBER|
+	|          4|       1|     1| hung|visitors_2|    MEMBER|MEMBER|
+	|          5|       0|     3| thuy|visitors_2|NON_MEMBER|MEMBER|
+	|          2|       1|     1| thai|visitors_1|    MEMBER|MEMBER|
+	|          1|       0|     3|quang|visitors_1|NON_MEMBER|MEMBER|
+	|          6|       0|     3|  nam|visitors_3|    MEMBER|MEMBER|
+	|          7|       0|     1|  hao|visitors_3|NON_MEMBER|MEMBER|
+	+-----------+--------+------+-----+----------+----------+------+
+#===================================
+df_n=spark.read.csv('spark-study/window_null.csv', header=True, sep='\t', inferSchema=True)
+df_n.show()
+	+-----------+--------+------+-----+----------+----------+
+	|PassengerId|Survived|Pclass| Name|  visitors|     post1|
+	+-----------+--------+------+-----+----------+----------+
+	|          1|       0|     3|quang|visitors_1|NON_MEMBER|
+	|          2|       1|     1| thai|visitors_1|    MEMBER|
+	|          3|       1|     3|  son|visitors_2|    MEMBER|
+	|          4|       1|     1| hung|visitors_2|    MEMBER|
+	|          5|       0|     3| thuy|visitors_2|NON_MEMBER|
+	|          6|       0|     3|  nam|visitors_3|      null|
+	|          7|       0|     1|  hao|visitors_3|NON_MEMBER|
+	+-----------+--------+------+-----+----------+----------+
+#同一visitors内でMEMBERとなっているヒットがあれば、NON_MEMBER ⇒ MEMBERとする。
+mebr_category= (Window
+	.partitionBy('visitors')
+	.orderBy('post1'))
+df_n = df_n.withColumn("mebr", first("post1", False).over(mebr_category))  -> Khi giá trị đầu của group = null thì vẫn thực hiện over
+df_n.show()
+	+-----------+--------+------+-----+----------+----------+------+
+	|PassengerId|Survived|Pclass| Name|  visitors|     post1|  mebr|
+	+-----------+--------+------+-----+----------+----------+------+
+	|          3|       1|     3|  son|visitors_2|    MEMBER|MEMBER|
+	|          4|       1|     1| hung|visitors_2|    MEMBER|MEMBER|
+	|          5|       0|     3| thuy|visitors_2|NON_MEMBER|MEMBER|
+	|          2|       1|     1| thai|visitors_1|    MEMBER|MEMBER|
+	|          1|       0|     3|quang|visitors_1|NON_MEMBER|MEMBER|
+	|          6|       0|     3|  nam|visitors_3|      null|  null|
+	|          7|       0|     1|  hao|visitors_3|NON_MEMBER|  null|
+	+-----------+--------+------+-----+----------+----------+------+
