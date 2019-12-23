@@ -783,3 +783,74 @@ df.select('post_from', 'post_to', 'post_region', 'post_area', 'post_date').show(
 	|      abc|    def|        123|      456| 20191130|
 	|      abd|    deg|        125|      458| 20191221|
 	+---------+-------+-----------+---------+---------+
+
+	===============================================================	
+
+					データ変換
+	
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+schema = StructType([StructField("date", StringType(), True)
+                    , StructField("date2", StringType(), True)])
+df = spark.read.csv("spark-study/data_change.csv", header=True, sep='\t', schema=schema)
+df.show()
+	+--------------------+--------+
+	|                date|   date2|
+	+--------------------+--------+
+	|2019/12/10  10:18:02|20191020|
+	|2019/12/11  11:12:02|20190422|
+	+--------------------+--------+
+df.printSchema()
+	root
+	|-- date: string (nullable = true)
+	|-- date2: string (nullable = true)
+# 型を変換
+	from pyspark.sql.functions import *
+	from pyspark.sql.functions import to_timestamp
+	df = df.withColumn("new_date", to_timestamp(df.date, 'yyyy/MM/dd HH:mm:ss'))
+df.show()
+	+--------------------+--------+-------------------+
+	|                date|   date2|           new_date|
+	+--------------------+--------+-------------------+
+	|2019/12/10  10:18:02|20191020|2019-12-10 10:18:02|
+	|2019/12/11  11:12:02|20190422|2019-12-11 11:12:02|
+	+--------------------+--------+-------------------+
+df = df.withColumn("new_date_int", unix_timestamp(col('date'), 'yyyy/MM/dd HH:mm:ss'))
+df.show()
+	+--------------------+--------+-------------------+------------+
+	|                date|   date2|           new_date|new_date_int|
+	+--------------------+--------+-------------------+------------+
+	|2019/12/10  10:18:02|20191020|2019-12-10 10:18:02|  1575940682|
+	|2019/12/11  11:12:02|20190422|2019-12-11 11:12:02|  1576030322|
+	+--------------------+--------+-------------------+------------+
+df=df.withColumn("new_date2", to_date(df.date2, 'yyyyMMdd'))
+df.show()
+	+--------------------+--------+-------------------+------------+----------+
+	|                date|   date2|           new_date|new_date_int| new_date2|
+	+--------------------+--------+-------------------+------------+----------+
+	|2019/12/10  10:18:02|20191020|2019-12-10 10:18:02|  1575940682|2019-10-20|
+	|2019/12/11  11:12:02|20190422|2019-12-11 11:12:02|  1576030322|2019-04-22|
+	+--------------------+--------+-------------------+------------+----------+
+df.printSchema()
+	root
+	|-- date: string (nullable = true)
+	|-- date2: string (nullable = true)
+	|-- new_date: timestamp (nullable = true)
+	|-- new_date_int: long (nullable = true)
+	|-- new_date2: date (nullable = true)
+df=df.withColumn("date2_datetime", from_unixtime(unix_timestamp(df.date2, "yyyyMMdd")).cast(DateType()))
+df.show()
+	+--------------------+--------+-------------------+------------+----------+--------------+
+	|                date|   date2|           new_date|new_date_int| new_date2|date2_datetime|
+	+--------------------+--------+-------------------+------------+----------+--------------+
+	|2019/12/10  10:18:02|20191020|2019-12-10 10:18:02|  1575940682|2019-10-20|    2019-10-20|
+	|2019/12/11  11:12:02|20190422|2019-12-11 11:12:02|  1576030322|2019-04-22|    2019-04-22|
+	+--------------------+--------+-------------------+------------+----------+--------------+
+df.printSchema()
+root
+	|-- date: string (nullable = true)
+	|-- date2: string (nullable = true)
+	|-- new_date: timestamp (nullable = true)
+	|-- new_date_int: long (nullable = true)
+	|-- new_date2: date (nullable = true)
+	|-- date2_datetime: date (nullable = true)
