@@ -854,3 +854,4 @@ root
 	|-- new_date_int: long (nullable = true)
 	|-- new_date2: date (nullable = true)
 	|-- date2_datetime: date (nullable = true)
+	
